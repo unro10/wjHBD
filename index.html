@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이우진 생일 축하해! 🎉</title>
+    <!-- Tailwind CSS for modern responsive UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=Noto+Sans+KR:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls for camera rotation/zoom -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Canvas Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            overflow: hidden;
+            background: radial-gradient(circle at center, #2d1b4e 0%, #110927 100%);
+        }
+        .title-font {
+            font-family: 'Gowun Batang', serif;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            outline: none;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
+        .glow-text {
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.6), 0 0 30px rgba(255, 105, 180, 0.4);
+        }
+        /* Custom modal transition */
+        .modal-enter {
+            opacity: 0;
+            transform: scale(0.8);
+        }
+        .modal-enter-active {
+            opacity: 1;
+            transform: scale(1);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+    </style>
+</head>
+<body class="w-screen h-screen relative text-white">
+
+    <!-- 3D Canvas container -->
+    <div id="canvas-container" class="absolute inset-0 z-0"></div>
+
+    <!-- UI Overlay Header -->
+    <header class="absolute top-4 inset-x-0 z-10 flex flex-col items-center pointer-events-none px-4 text-center">
+        <div class="glass-card px-6 py-3 rounded-full shadow-2xl flex items-center space-x-3 pointer-events-auto border border-pink-300/30 mb-2">
+            <span class="text-2xl animate-bounce">🎂</span>
+            <h1 class="text-2xl sm:text-4xl font-bold tracking-tight text-pink-200 title-font glow-text">
+                이우진 생일 축하해! 🎉
+            </h1>
+            <span class="text-2xl animate-bounce">🍓</span>
+        </div>
+        <p class="text-xs sm:text-sm text-pink-100/80 bg-black/40 px-4 py-1 rounded-full backdrop-blur-sm pointer-events-auto">
+            🕯️ 촛불을 손으로 터치하거나 클릭해서 꺼보세요! (15개의 촛불)
+        </p>
+    </header>
+
+    <!-- UI Overlay Controls & Counter -->
+    <div class="absolute bottom-6 inset-x-0 z-10 flex flex-col sm:flex-row items-center justify-between px-6 gap-4 pointer-events-none">
+        <!-- Counter Badge -->
+        <div class="glass-card px-5 py-2.5 rounded-2xl pointer-events-auto flex items-center gap-3 shadow-lg">
+            <i class="fa-solid fa-flame text-amber-400 text-xl animate-pulse"></i>
+            <span class="text-sm sm:text-base font-semibold">
+                남은 촛불: <span id="candle-count" class="text-amber-300 text-xl font-extrabold">15</span> / 15
+            </span>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex items-center gap-3 pointer-events-auto">
+            <button id="btn-blow-all" class="glass-card hover:bg-pink-500/30 text-white font-medium px-4 py-2.5 rounded-2xl transition duration-200 flex items-center gap-2 active:scale-95 shadow-md border border-pink-300/40">
+                <i class="fa-solid fa-wind text-cyan-300"></i>
+                <span class="text-sm sm:text-base">전부 끄기 💨</span>
+            </button>
+            
+            <button id="btn-relight" class="glass-card hover:bg-amber-500/30 text-white font-medium px-4 py-2.5 rounded-2xl transition duration-200 flex items-center gap-2 active:scale-95 shadow-md border border-amber-300/40">
+                <i class="fa-solid fa-rotate-left text-amber-300"></i>
+                <span class="text-sm sm:text-base">촛불 다시 켜기</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Victory Celebration Modal -->
+    <div id="victory-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md hidden pointer-events-auto">
+        <div class="glass-card max-w-md w-full p-8 rounded-3xl text-center shadow-2xl border border-pink-300/50 bg-gradient-to-b from-purple-900/90 to-pink-900/90 relative overflow-hidden">
+            <!-- Decorative sparkle effect -->
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-pink-500/30 rounded-full blur-2xl"></div>
+            <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-amber-500/30 rounded-full blur-2xl"></div>
+
+            <div class="text-6xl mb-4 animate-bounce">🎁</div>
+            <h2 class="text-3xl font-extrabold text-amber-300 title-font mb-2 glow-text">
+                이우진 님, 15번째 생일을 진심으로 축하합니다! 🥳
+            </h2>
+            <p class="text-pink-100 text-sm sm:text-base mb-6 leading-relaxed">
+                15개의 달콤한 빛처럼 앞으로의 모든 날들이 밝고 화사하게 빛나길 바랍니다. 행복이 가득한 하루 보내세요! ✨🎂
+            </p>
+
+            <button id="modal-relight-btn" class="w-full bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white font-bold py-3.5 px-6 rounded-2xl shadow-xl transform transition hover:-translate-y-0.5 active:translate-y-0 text-lg">
+                💖 케이크 다시 만들기 (촛불 켜기)
+            </button>
+        </div>
+    </div>
+
+    <!-- Main JavaScript Logic -->
+    <script>
+        // --- Web Audio Synthesizer for Sound Effects & Happy Birthday Song ---
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            // Candle blow pop sound
+            playBlowSound() {
+                this.init();
+                const now = this.ctx.currentTime;
+                // Puff noise + soft pop
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            }
+
+            // Happy Birthday melody notes synthesized
+            playVictoryTune() {
+                this.init();
+                const notes = [
+                    { note: 'C4', duration: 0.3, delay: 0 },
+                    { note: 'C4', duration: 0.3, delay: 0.35 },
+                    { note: 'D4', duration: 0.6, delay: 0.7 },
+                    { note: 'C4', duration: 0.6, delay: 1.35 },
+                    { note: 'F4', duration: 0.6, delay: 2.0 },
+                    { note: 'E4', duration: 1.0, delay: 2.65 },
+
+                    { note: 'C4', duration: 0.3, delay: 3.8 },
+                    { note: 'C4', duration: 0.3, delay: 4.15 },
+                    { note: 'D4', duration: 0.6, delay: 4.5 },
+                    { note: 'C4', duration: 0.6, delay: 5.15 },
+                    { note: 'G4', duration: 0.6, delay: 5.8 },
+                    { note: 'F4', duration: 1.0, delay: 6.45 },
+                ];
+
+                const freqs = {
+                    'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23, 'G4': 392.00
+                };
+
+                notes.forEach(item => {
+                    setTimeout(() => {
+                        this.playTone(freqs[item.note], item.duration);
+                    }, item.delay * 1000);
+                });
+            }
+
+            playTone(freq, duration) {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, now);
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + duration);
+            }
+        }
+
+        const audioFX = new SoundFX();
+
+        // --- Three.js 3D Scene Setup ---
+        let scene, camera, renderer, controls;
+        let candles = []; // Stores candle object data { mesh, flameMesh, pointLight, isLit, id }
+        let smokeParticles = [];
+        const TOTAL_CANDLES = 15;
+        let activeCandleCount = TOTAL_CANDLES;
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+
+            // Scene
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x1a0933, 0.035);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 8, 14);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // OrbitControls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 + 0.05; // Don't go far below cake table
+            controls.minDistance = 6;
+            controls.maxDistance = 22;
+            controls.target.set(0, 2.5, 0);
+
+            // Lights
+            setupLights();
+
+            // Background floating sparkle particles
+            createBackgroundSparkles();
+
+            // Build Cake & Candles
+            buildCake();
+
+            // Event Listeners
+            window.addEventListener('resize', onWindowResize);
+            renderer.domElement.addEventListener('pointerdown', onPointerDown);
+
+            // Initial UI Update
+            updateCounterUI();
+
+            // Animation Loop
+            animate();
+        }
+
+        // --- Lighting ---
+        function setupLights() {
+            // Ambient light for general soft illumination
+            const ambientLight = new THREE.AmbientLight(0xfff0f5, 0.7);
+            scene.add(ambientLight);
+
+            // Main warm directional light (key light)
+            const dirLight = new THREE.DirectionalLight(0xfffaed, 1.2);
+            dirLight.position.set(10, 20, 10);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.camera.near = 0.5;
+            dirLight.shadow.camera.far = 40;
+            const d = 8;
+            dirLight.shadow.camera.left = -d;
+            dirLight.shadow.camera.right = d;
+            dirLight.shadow.camera.top = d;
+            dirLight.shadow.camera.bottom = -d;
+            scene.add(dirLight);
+
+            // Soft blue fill light from below/side
+            const fillLight = new THREE.DirectionalLight(0x8a70d6, 0.5);
+            fillLight.position.set(-10, 5, -10);
+            scene.add(fillLight);
+        }
+
+        // --- Background Floating Sparkles ---
+        let sparklesGroup;
+        function createBackgroundSparkles() {
+            sparklesGroup = new THREE.Group();
+            const geometry = new THREE.BufferGeometry();
+            const count = 150;
+            const positions = new Float32Array(count * 3);
+
+            for (let i = 0; i < count * 3; i += 3) {
+                positions[i] = (Math.random() - 0.5) * 30;
+                positions[i + 1] = Math.random() * 20 - 2;
+                positions[i + 2] = (Math.random() - 0.5) * 30;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+            // Particle texture using canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = 16;
+            canvas.height = 16;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createRadialGradient(8, 8, 0, 8, 8, 8);
+            grad.addColorStop(0, 'rgba(255,230,180,1)');
+            grad.addColorStop(1, 'rgba(255,150,200,0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 16, 16);
+
+            const pTexture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.PointsMaterial({
+                size: 0.3,
+                map: pTexture,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            const points = new THREE.Points(geometry, material);
+            sparklesGroup.add(points);
+            scene.add(sparklesGroup);
+        }
+
+        // --- Build 3D Fresh Cream Cake & 15 Candles ---
+        function buildCake() {
+            const cakeGroup = new THREE.Group();
+
+            // Cake Plate (Base)
+            const plateGeo = new THREE.CylinderGeometry(4.8, 5.0, 0.25, 64);
+            const plateMat = new THREE.MeshStandardMaterial({
+                color: 0xf5f5f7,
+                roughness: 0.1,
+                metalness: 0.8
+            });
+            const plate = new THREE.Mesh(plateGeo, plateMat);
+            plate.position.y = 0.125;
+            plate.receiveShadow = true;
+            cakeGroup.add(plate);
+
+            // Bottom Tier Cake Layer (Fresh Cream White)
+            const bottomTierGeo = new THREE.CylinderGeometry(3.8, 3.8, 1.8, 64);
+            const creamMat = new THREE.MeshStandardMaterial({
+                color: 0xfffcf7,
+                roughness: 0.35,
+                metalness: 0.05
+            });
+            const bottomTier = new THREE.Mesh(bottomTierGeo, creamMat);
+            bottomTier.position.y = 1.15;
+            bottomTier.castShadow = true;
+            bottomTier.receiveShadow = true;
+            cakeGroup.add(bottomTier);
+
+            // Strawberry Jam / Filling Layer Accent
+            const fillGeo = new THREE.CylinderGeometry(3.83, 3.83, 0.1, 64);
+            const fillMat = new THREE.MeshStandardMaterial({ color: 0xe63946, roughness: 0.2 });
+            const fillLayer = new THREE.Mesh(fillGeo, fillMat);
+            fillLayer.position.y = 1.15;
+            cakeGroup.add(fillLayer);
+
+            // Top Tier Cake Layer
+            const topTierGeo = new THREE.CylinderGeometry(2.6, 2.6, 1.6, 64);
+            const topTier = new THREE.Mesh(topTierGeo, creamMat);
+            topTier.position.y = 2.85;
+            topTier.castShadow = true;
+            topTier.receiveShadow = true;
+            cakeGroup.add(topTier);
+
+            // Cream Swirls around bottom edge & top edge
+            createCreamPuffs(cakeGroup, 3.8, 2.05, 18, 0.22);
+            createCreamPuffs(cakeGroup, 2.6, 3.65, 14, 0.18);
+
+            // Decorative Strawberries & Cherries
+            createFruitDecorations(cakeGroup);
+
+            // Place 15 Candles on Top Tier
+            create15Candles(cakeGroup);
+
+            scene.add(cakeGroup);
+        }
+
+        // Cream puff swirls along the edges
+        function createCreamPuffs(parent, radius, heightY, count, scale) {
+            const puffGeo = new THREE.DodecahedronGeometry(scale, 2);
+            const puffMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
+
+            for (let i = 0; i < count; i++) {
+                const angle = (i / count) * Math.PI * 2;
+                const puff = new THREE.Mesh(puffGeo, puffMat);
+                puff.position.set(
+                    Math.cos(angle) * radius,
+                    heightY,
+                    Math.sin(angle) * radius
+                );
+                puff.scale.set(1, 1.3, 1);
+                puff.rotation.y = angle;
+                puff.castShadow = true;
+                parent.add(puff);
+            }
+        }
+
+        // Strawberries & Cherries decor
+        function createFruitDecorations(parent) {
+            // Strawberries on top tier
+            const strawbGeo = new THREE.ConeGeometry(0.25, 0.5, 16);
+            const strawbMat = new THREE.MeshStandardMaterial({ color: 0xd90429, roughness: 0.3 });
+            const leafGeo = new THREE.DodecahedronGeometry(0.1, 1);
+            const leafMat = new THREE.MeshStandardMaterial({ color: 0x2b9348 });
+
+            const count = 8;
+            const radius = 2.1;
+            for (let i = 0; i < count; i++) {
+                const angle = (i / count) * Math.PI * 2 + 0.2;
+                const sbGroup = new THREE.Group();
+                const sb = new THREE.Mesh(strawbGeo, strawbMat);
+                sb.rotation.x = Math.PI;
+                sb.castShadow = true;
+                sbGroup.add(sb);
+
+                const leaf = new THREE.Mesh(leafGeo, leafMat);
+                leaf.position.y = 0.25;
+                sbGroup.add(leaf);
+
+                sbGroup.position.set(Math.cos(angle) * radius, 3.75, Math.sin(angle) * radius);
+                sbGroup.rotation.z = 0.2;
+                parent.add(sbGroup);
+            }
+        }
+
+        // --- 15 Interactive Candles Setup ---
+        function create15Candles(parent) {
+            candles = [];
+            const candleRadius = 1.35; // Radius on top of top-tier cake
+            const candleHeight = 0.75;
+            const candleY = 3.65 + candleHeight / 2;
+
+            // Soft pastel colors for 15 candles
+            const colors = [
+                0xffb7b2, 0xffdac1, 0xe2f0cb, 0xb5ead7, 0xc7ceea,
+                0xff9aa2, 0xffffb7, 0xd4a5a5, 0x90e0ef, 0xf7d6e0,
+                0xf28482, 0xf6bd60, 0x84dcc6, 0xa5a58d, 0xe8aeb7
+            ];
+
+            const candleGeo = new THREE.CylinderGeometry(0.06, 0.06, candleHeight, 16);
+
+            for (let i = 0; i < TOTAL_CANDLES; i++) {
+                // Arrange 15 candles in a neat circle on top of cake
+                const angle = (i / TOTAL_CANDLES) * Math.PI * 2;
+                const x = Math.cos(angle) * candleRadius;
+                const z = Math.sin(angle) * candleRadius;
+
+                const candleGroup = new THREE.Group();
+                candleGroup.position.set(x, candleY, z);
+
+                // Candle Wax Body
+                const waxMat = new THREE.MeshStandardMaterial({
+                    color: colors[i % colors.length],
+                    roughness: 0.3
+                });
+                const wax = new THREE.Mesh(candleGeo, waxMat);
+                wax.castShadow = true;
+                candleGroup.add(wax);
+
+                // Wick
+                const wickGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.12, 8);
+                const wickMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
+                const wick = new THREE.Mesh(wickGeo, wickMat);
+                wick.position.y = candleHeight / 2 + 0.06;
+                candleGroup.add(wick);
+
+                // Flame Sprite / Mesh
+                const flameGroup = new THREE.Group();
+                flameGroup.position.y = candleHeight / 2 + 0.2;
+
+                // Flame outer glow mesh
+                const flameGeo = new THREE.ConeGeometry(0.09, 0.28, 16);
+                const flameMat = new THREE.MeshBasicMaterial({
+                    color: 0xffa500,
+                    transparent: true,
+                    opacity: 0.9
+                });
+                const flameMesh = new THREE.Mesh(flameGeo, flameMat);
+                flameMesh.position.y = 0.08;
+                flameGroup.add(flameMesh);
+
+                // Inner bright yellow core
+                const innerFlameGeo = new THREE.ConeGeometry(0.045, 0.16, 16);
+                const innerFlameMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                const innerFlame = new THREE.Mesh(innerFlameGeo, innerFlameMat);
+                innerFlame.position.y = 0.05;
+                flameGroup.add(innerFlame);
+
+                // Candle Point Light for dynamic warm glow
+                const pointLight = new THREE.PointLight(0xffaa33, 0.8, 2.5);
+                pointLight.position.y = 0.15;
+                flameGroup.add(pointLight);
+
+                candleGroup.add(flameGroup);
+                parent.add(candleGroup);
+
+                // Store object reference for interaction
+                candles.push({
+                    id: i,
+                    group: candleGroup,
+                    flameGroup: flameGroup,
+                    pointLight: pointLight,
+                    isLit: true,
+                    flickerOffset: Math.random() * 100
+                });
+            }
+        }
+
+        // --- Extinguish Candle Logic ---
+        function extinguishCandle(candle) {
+            if (!candle.isLit) return;
+
+            candle.isLit = false;
+            candle.flameGroup.visible = false;
+            candle.pointLight.intensity = 0;
+
+            // Play sound effect
+            audioFX.playBlowSound();
+
+            // Spawn smoke particles at candle tip
+            const worldPos = new THREE.Vector3();
+            candle.flameGroup.getWorldPosition(worldPos);
+            createSmokePuff(worldPos);
+
+            activeCandleCount--;
+            updateCounterUI();
+
+            // Check if all candles are blown out!
+            if (activeCandleCount === 0) {
+                setTimeout(onAllCandlesExtinguished, 500);
+            }
+        }
+
+        // Smoke puff particle effect
+        function createSmokePuff(pos) {
+            const particleCount = 8;
+            for (let i = 0; i < particleCount; i++) {
+                const geo = new THREE.SphereGeometry(0.04 + Math.random() * 0.03, 8, 8);
+                const mat = new THREE.MeshBasicMaterial({
+                    color: 0xcccccc,
+                    transparent: true,
+                    opacity: 0.7
+                });
+                const p = new THREE.Mesh(geo, mat);
+                p.position.copy(pos);
+                p.position.x += (Math.random() - 0.5) * 0.1;
+                p.position.z += (Math.random() - 0.5) * 0.1;
+
+                scene.add(p);
+                smokeParticles.push({
+                    mesh: p,
+                    vy: 0.015 + Math.random() * 0.02,
+                    vx: (Math.random() - 0.5) * 0.008,
+                    vz: (Math.random() - 0.5) * 0.008,
+                    life: 1.0
+                });
+            }
+        }
+
+        // Relight all candles
+        function relightAllCandles() {
+            candles.forEach(c => {
+                c.isLit = true;
+                c.flameGroup.visible = true;
+                c.pointLight.intensity = 0.8;
+            });
+            activeCandleCount = TOTAL_CANDLES;
+            updateCounterUI();
+
+            // Hide victory modal if open
+            const modal = document.getElementById('victory-modal');
+            modal.classList.add('hidden');
+        }
+
+        // Blow all candles at once
+        function blowAllCandles() {
+            let delay = 0;
+            candles.forEach(c => {
+                if (c.isLit) {
+                    setTimeout(() => {
+                        extinguishCandle(c);
+                    }, delay);
+                    delay += 60; // Sequential ripple extinguish effect
+                }
+            });
+        }
+
+        // --- Pointer Interaction (Click / Touch to blow out) ---
+        function onPointerDown(event) {
+            // Calculate pointer position in normalized device coordinates (-1 to +1)
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            // Raycast against candle objects
+            const litCandleGroups = candles.filter(c => c.isLit).map(c => c.group);
+            const intersects = raycaster.intersectObjects(litCandleGroups, true);
+
+            if (intersects.length > 0) {
+                // Find which candle group was hit
+                let hitObj = intersects[0].object;
+                while (hitObj.parent && !hitObj.userData.isCandleRoot) {
+                    // Search upwards in group
+                    const matchedCandle = candles.find(c => c.group === hitObj);
+                    if (matchedCandle) {
+                        extinguishCandle(matchedCandle);
+                        return;
+                    }
+                    hitObj = hitObj.parent;
+                }
+                // Secondary check
+                const matchedCandle = candles.find(c => c.group === hitObj);
+                if (matchedCandle) {
+                    extinguishCandle(matchedCandle);
+                }
+            }
+        }
+
+        // --- Victory Stage Trigger ---
+        function onAllCandlesExtinguished() {
+            // Trigger Confetti Burst
+            confetti({
+                particleCount: 120,
+                spread: 100,
+                origin: { y: 0.6 }
+            });
+
+            setTimeout(() => {
+                confetti({
+                    particleCount: 80,
+                    angle: 60,
+                    spread: 80,
+                    origin: { x: 0 }
+                });
+                confetti({
+                    particleCount: 80,
+                    angle: 120,
+                    spread: 80,
+                    origin: { x: 1 }
+                });
+            }, 300);
+
+            // Play celebratory synth melody
+            audioFX.playVictoryTune();
+
+            // Show congratulatory popup modal
+            const modal = document.getElementById('victory-modal');
+            modal.classList.remove('hidden');
+        }
+
+        // --- UI Updates ---
+        function updateCounterUI() {
+            const countEl = document.getElementById('candle-count');
+            if (countEl) {
+                countEl.textContent = activeCandleCount;
+            }
+        }
+
+        // --- Resize Event ---
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // --- Animation Loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = clock.getElapsedTime();
+
+            // 1. Controls update
+            controls.update();
+
+            // 2. Flame flickering animation
+            candles.forEach(c => {
+                if (c.isLit) {
+                    const flick = Math.sin(time * 12 + c.flickerOffset) * 0.08 + 1.0;
+                    c.flameGroup.scale.set(flick, flick + Math.cos(time * 15) * 0.05, flick);
+                    c.pointLight.intensity = 0.7 * flick;
+                }
+            });
+
+            // 3. Update smoke particles
+            for (let i = smokeParticles.length - 1; i >= 0; i--) {
+                const sp = smokeParticles[i];
+                sp.life -= 0.02;
+                sp.mesh.position.y += sp.vy;
+                sp.mesh.position.x += sp.vx;
+                sp.mesh.position.z += sp.vz;
+                sp.mesh.scale.multiplyScalar(1.03); // expand
+                sp.mesh.material.opacity = sp.life * 0.6;
+
+                if (sp.life <= 0) {
+                    scene.remove(sp.mesh);
+                    sp.mesh.geometry.dispose();
+                    sp.mesh.material.dispose();
+                    smokeParticles.splice(i, 1);
+                }
+            }
+
+            // 4. Slow background sparkle rotation
+            if (sparklesGroup) {
+                sparklesGroup.rotation.y = time * 0.03;
+            }
+
+            // Render scene
+            renderer.render(scene, camera);
+        }
+
+        const clock = new THREE.Clock();
+
+        // --- DOM Event Handlers ---
+        window.addEventListener('DOMContentLoaded', () => {
+            init3D();
+
+            document.getElementById('btn-relight').addEventListener('click', relightAllCandles);
+            document.getElementById('btn-blow-all').addEventListener('click', blowAllCandles);
+            document.getElementById('modal-relight-btn').addEventListener('click', relightAllCandles);
+        });
+    </script>
+</body>
+</html>
